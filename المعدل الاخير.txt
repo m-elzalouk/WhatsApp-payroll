@@ -1,0 +1,76 @@
+Private Sub CommandButton1_Click()
+Application.Visible = False
+Dim LFrow, last As Integer
+last = data.Range("a1000").End(xlUp).Row
+Dim Contact As String
+Dim Upsum, DemSum As Double
+ThisWorkbook.FollowHyperlink "https://web.whatsapp.com/"
+Application.Wait (Now + TimeValue("00:00:15"))
+
+For LFrow = 3 To last
+photo.Range("F12").Value = data.Cells(LFrow, "C").Value
+photo.Range("F10").Value = data.Cells(LFrow, "D").Value
+photo.Range("K10").Value = data.Cells(LFrow, "E").Value
+photo.Range("L3").Value = CDate(Date)
+photo.Range("K12").Value = data.Cells(LFrow, "F").Value
+photo.Range("F14").Value = data.Cells(LFrow, "G").Value
+photo.Range("K14").Value = data.Cells(LFrow, "H").Value
+photo.Range("F16").Value = data.Cells(LFrow, "I").Value
+photo.Range("K16").Value = data.Cells(LFrow, "J").Value
+photo.Range("F18").Value = data.Cells(LFrow, "K").Value
+photo.Range("K18").Value = data.Cells(LFrow, "L").Value
+photo.Range("F20").Value = data.Cells(LFrow, "M").Value
+photo.Range("F24").Value = data.Cells(LFrow, "N").Value
+photo.Range("K24").Value = data.Cells(LFrow, "O").Value
+photo.Range("F26").Value = data.Cells(LFrow, "P").Value
+photo.Range("K26").Value = data.Cells(LFrow, "Q").Value
+photo.Range("F28").Value = data.Cells(LFrow, "R").Value
+photo.Range("H31").Value = data.Cells(LFrow, "S").Value
+
+
+Contact = data.Cells(LFrow, "A").Value
+''''''''''
+Call SendKeys("{Tab}", True)
+Application.Wait (Now + TimeValue("00:00:01"))
+Call SendKeys("{Tab}", True)
+Application.Wait (Now + TimeValue("00:00:01"))
+Call SendKeys("{Tab}", True)
+Application.Wait (Now + TimeValue("00:00:01"))
+Call SendKeys("{Tab}", True)
+Application.Wait (Now + TimeValue("00:00:01"))
+Call SendKeys("{Tab}", True)
+Application.Wait (Now + TimeValue("00:00:01"))
+Call SendKeys("{Tab}", True)
+Application.Wait (Now + TimeValue("00:00:01"))
+Call SendKeys("{Tab}", True)
+Application.Wait (Now + TimeValue("00:00:01"))
+Call SendKeys("{Tab}", True)
+Application.Wait (Now + TimeValue("00:00:01"))
+Call SendKeys("{Tab}", True)
+Application.Wait (Now + TimeValue("00:00:01"))
+Call SendKeys("{Tab}", True)
+Application.Wait (Now + TimeValue("00:00:01"))
+Call SendKeys("{Tab}", True)
+Application.Wait (Now + TimeValue("00:00:01"))
+Call SendKeys(Contact, True)
+Application.Wait (Now + TimeValue("00:00:02"))
+Call SendKeys("~", True)
+Application.Wait (Now + TimeValue("00:00:02"))
+photo.Range("B2:O35").Copy
+Application.Wait (Now + TimeValue("00:00:02"))
+Application.SendKeys "^v"
+Application.Wait (Now + TimeValue("00:00:02"))
+Call SendKeys("~", True)
+Application.Wait (Now + TimeValue("00:00:02"))
+Call SendKeys("{Tab}", True)
+Application.Wait (Now + TimeValue("00:00:02"))
+Next LFrow
+Application.Visible = True
+MsgBox "?? ????? ??????? ?????", vbInformation + vbMsgBoxRight + vbMsgBoxRtlReading, "?????"
+
+End Sub
+
+
+
+
+
