@@ -77,6 +77,7 @@ for index, row in df.iterrows():
     photo.Range("F10").Value = row["Military ID"]
     photo.Range("F12").Value = row["Rank"]
     photo.Range("F14").Value = row["Number of Increments"]
+    photo.Range("K12").Value = row["Degree"]
     photo.Range("K14").Value = row["Basic Salary"]
     photo.Range("F16").Value = row["Military Allowance"]
     photo.Range("K16").Value = row["Supply Allowance"]
@@ -92,6 +93,8 @@ for index, row in df.iterrows():
     photo.Range("K10").Value = row["Military Name"]
 
     photo.Activate()
+    time.sleep(0.5)
+    photo.Range("B2:O35").Select()
     time.sleep(0.5)
     photo.Range("B2:O35").CopyPicture(Format=win32.constants.xlPicture)
 
@@ -243,6 +246,8 @@ if failed_contacts:
 else:
     print("\n✅ All messages sent successfully.")
 
-
-driver.quit()
+time.sleep(5)
+wb.Close(False)
+excel.Quit()
+# driver.quit()
 print("✅ All slips sent.")
