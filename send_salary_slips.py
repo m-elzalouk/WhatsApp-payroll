@@ -111,13 +111,16 @@ try:
 
 finally:
     try:
-        wb.Close(False)
+        if 'wb' in locals() and wb:
+            wb.Close(False)
     except Exception as e:
         print(f"⚠️ Workbook close error: {e}")
     try:
-        excel.Quit()
+        if 'excel' in locals() and excel:
+            excel.Quit()
     except Exception as e:
         print(f"⚠️ Excel quit error: {e}")
+
         
 # === Open WhatsApp Web
 options = Options()
@@ -216,27 +219,27 @@ for index, row in df.iterrows():
     try:
         print(f"📤 Sending to {name}")
         search_box = wait.until(EC.presence_of_element_located((By.XPATH, '//div[@contenteditable="true"][@data-tab="3"]')))
-        time.sleep(1)
+        time.sleep(0.5)
         search_box.clear()
-        time.sleep(1)
+        time.sleep(0.5)
         search_box.send_keys(name)
-        time.sleep(2)
+        time.sleep(1)
         search_box.send_keys(Keys.ENTER)
-        time.sleep(3)
+        time.sleep(2)
 
         copy_image_to_clipboard(image_path)
-        time.sleep(2)
+        time.sleep(1)
 
         message_box = wait.until(EC.presence_of_element_located((By.XPATH, '//div[@contenteditable="true"][@data-tab="10"]')))
         ActionChains(driver).move_to_element(message_box).click().perform()
-        time.sleep(2)
+        time.sleep(1)
 
         message_box.send_keys(Keys.CONTROL, 'v')
-        time.sleep(3)
+        time.sleep(2)
 
         send_btn = wait.until(EC.element_to_be_clickable((By.XPATH, '//div[@role="button" and @aria-label="Send"]')))
         driver.execute_script("arguments[0].click();", send_btn)
-        time.sleep(4)
+        time.sleep(3)
 
         print(f"✅ Sent to {name}")
 
@@ -253,8 +256,6 @@ else:
     print("\n✅ All messages sent successfully.")
 
 time.sleep(5)
-wb.Close(False)
-excel.save()
 excel.Quit()
 driver.quit()
 print("✅ All slips sent.")
