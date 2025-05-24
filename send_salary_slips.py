@@ -66,54 +66,60 @@ df = pd.read_excel(EXCEL_FILE, sheet_name=SHEET_DATA)
 #     chart.Delete()
 
 excel = win32.gencache.EnsureDispatch('Excel.Application')
-excel.Visible = True  # required for rendering
-wb = excel.Workbooks.Open(os.path.abspath(EXCEL_FILE))
-photo = wb.Sheets(SHEET_TEMPLATE)
+excel.Visible = True
 
-for index, row in df.iterrows():
-    name = str(row['Contact_Name']).strip()
+try:
+    wb = excel.Workbooks.Open(os.path.abspath(EXCEL_FILE))
+    photo = wb.Sheets(SHEET_TEMPLATE)
 
-    # Fill values
-    photo.Range("F10").Value = row["Military ID"]
-    photo.Range("F12").Value = row["Rank"]
-    photo.Range("F14").Value = row["Number of Increments"]
-    photo.Range("K12").Value = row["Degree"]
-    photo.Range("K14").Value = row["Basic Salary"]
-    photo.Range("F16").Value = row["Military Allowance"]
-    photo.Range("K16").Value = row["Supply Allowance"]
-    photo.Range("F18").Value = row["catering allowance"]
-    photo.Range("K18").Value = row["Car Allowance"]
-    photo.Range("F20").Value = row["Total Salary"]
-    photo.Range("F24").Value = row["Social Security"]
-    photo.Range("K24").Value = row["Solidarity"]
-    photo.Range("F26").Value = row["Jihad"]
-    photo.Range("K26").Value = row["Loan Fund"]
-    photo.Range("F28").Value = row["Total Deduction"]
-    photo.Range("H31").Value = row["Net Salary"]
-    photo.Range("K10").Value = row["Military Name"]
+    for index, row in df.iterrows():
+        name = str(row["Contact_Name"]).strip()
 
-    photo.Activate()
-    time.sleep(0.5)
-    photo.Range("B2:O35").Select()
-    time.sleep(0.5)
-    photo.Range("B2:O35").CopyPicture(Format=win32.constants.xlPicture)
+        # Fill values
+        photo.Range("F10").Value = row["Military ID"]
+        photo.Range("F12").Value = row["Rank"]
+        photo.Range("F14").Value = row["Number of Increments"]
+        photo.Range("K12").Value = row["Degree"]
+        photo.Range("K14").Value = row["Basic Salary"]
+        photo.Range("F16").Value = row["Military Allowance"]
+        photo.Range("K16").Value = row["Supply Allowance"]
+        photo.Range("F18").Value = row["catering allowance"]
+        photo.Range("K18").Value = row["Car Allowance"]
+        photo.Range("F20").Value = row["Total Salary"]
+        photo.Range("F24").Value = row["Social Security"]
+        photo.Range("K24").Value = row["Solidarity"]
+        photo.Range("F26").Value = row["Jihad"]
+        photo.Range("K26").Value = row["Loan Fund"]
+        photo.Range("F28").Value = row["Total Deduction"]
+        photo.Range("H31").Value = row["Net Salary"]
+        photo.Range("K10").Value = row["Military Name"]
 
-    chart = photo.ChartObjects().Add(Left=0, Top=0, Width=800, Height=600)
-    chart.Activate()
-    chart.Chart.Paste()
-    image_path = os.path.abspath(os.path.join(EXPORT_DIR, f"{name}.png"))
-    chart.Chart.Export(Filename=image_path)
-    chart.Delete()
+        # Export image
+        photo.Activate()
+        photo.Range("B2:O35").Select()
+        time.sleep(0.5)
+        photo.Range("B2:O35").CopyPicture(Format=win32.constants.xlPicture)
 
+        chart = photo.ChartObjects().Add(Left=0, Top=0, Width=800, Height=600)
+        chart.Activate()
+        chart.Chart.Paste()
+        image_path = os.path.abspath(os.path.join(EXPORT_DIR, f"{name}.png"))
+        chart.Chart.Export(Filename=image_path)
+        chart.Delete()
 
-wb.Save()
-wb.Close(False)
-excel.Quit()
+    print("✅ Exported all salary images to 'exports/' folder.")
 
-print("✅ Exported all salary images to 'exports/' folder.")
-
+finally:
+    try:
+        wb.Close(False)
+    except Exception as e:
+        print(f"⚠️ Workbook close error: {e}")
+    try:
+        excel.Quit()
+    except Exception as e:
+        print(f"⚠️ Excel quit error: {e}")
+        
 # === Open WhatsApp Web
-
 options = Options()
 options.add_argument(r"user-data-dir=C:\ChromeProfiles\whatsapp_profile")
 
@@ -248,6 +254,7 @@ else:
 
 time.sleep(5)
 wb.Close(False)
+excel.save()
 excel.Quit()
-# driver.quit()
+driver.quit()
 print("✅ All slips sent.")
