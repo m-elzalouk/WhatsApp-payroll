@@ -1,5 +1,3 @@
-Sure! Here's your full `README.md` content as one complete block:
-
 ```markdown
 # 💬 WhatsApp Salary Slip Sender
 
@@ -112,5 +110,3 @@ This script automates WhatsApp for internal use only. Make sure it complies with
 
 MIT License
 ```
-
-You can copy-paste this into a `README.md` file and include it with your project. Let me know if you'd like to localize it to Arabic, add screenshots, or generate it in PDF format for documentation.
