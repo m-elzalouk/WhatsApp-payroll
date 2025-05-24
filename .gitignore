@@ -17,6 +17,7 @@ migrate_working_dir/
 *.iws
 .idea/
 
-salary_template.xlsx
 *.xlsx
-exports/
+exports
+build
+salary_template.xlsx

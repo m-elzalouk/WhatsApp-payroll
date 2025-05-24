@@ -1,55 +1,51 @@
-```markdown
-# 💬 WhatsApp Salary Slip Sender
-
-This project automates the generation and sending of salary slips to employees via **WhatsApp Web**, using data from an Excel file and styled salary templates.
+* `Excel COM Automation (win32com)`
+* `Chrome + Selenium` with `chromedriver`
+* `clipboard image sending` via `pywin32`
+* A `.venv` environment
 
 ---
 
-## 📁 Project Structure
+## ✅ Final Verified Steps to Run the WhatsApp Salary Slip Project
+
+### ✅ 1. 📁 Folder Structure
 
 ```
 FinanceProject/
-│
-├── .venv/                      # Virtual environment (optional but recommended)
-├── send_salary_slips.py       # Main automation script
-├── salary_template.xlsx       # Excel file with salary data and the 'photo' template sheet
-├── exports/                   # Auto-generated folder for exported salary slip images
-├── chromedriver.exe           # Required for controlling Chrome
-├── requirements.txt           # List of dependencies
+├── send_salary_slips.py          # Your main Python script
+├── salary_template.xlsx          # Excel with 'data' and 'photo' sheets
+├── chromedriver.exe              # Must match your Chrome version
+├── requirements.txt              # Your Python dependencies
+├── exports/                      # Auto-created for PNG slips
+└── .venv/                        # Virtual environment (optional but ideal)
 ```
 
 ---
 
-## 🧰 Features
+### ✅ 2. 🔧 Initial Setup (First Time on New PC)
 
-- Reads employee data from `data` sheet in Excel.
-- Fills the `photo` sheet to generate a visual salary slip.
-- Exports each slip as a PNG file.
-- Detects blank images and skips sending them.
-- Sends each image to the corresponding WhatsApp contact using clipboard paste.
-- Logs any failed sends and continues gracefully.
+#### A. Install Python (3.10+ recommended)
 
----
+Download from: [https://www.python.org/downloads/](https://www.python.org/downloads/)
 
-## 🧪 Requirements
+> ⚠️ Ensure you check "Add Python to PATH" during install
 
-- **Python 3.10+**
-- Google Chrome installed
-- `chromedriver.exe` that matches your Chrome version (place it in project root)
-
----
-
-## 📦 Setup Instructions
-
-### 1. Clone the project and install dependencies
+#### B. Create and activate virtual environment
 
 ```bash
+cd FinanceProject
 python -m venv .venv
 .venv\Scripts\activate
+```
+
+#### C. Install dependencies
+
+If you have `requirements.txt`:
+
+```bash
 pip install -r requirements.txt
 ```
 
-> If `requirements.txt` is missing, run:
+If not, run:
 
 ```bash
 pip install pandas selenium pywin32 pillow openpyxl
@@ -57,56 +53,65 @@ pip install pandas selenium pywin32 pillow openpyxl
 
 ---
 
-### 2. Set up WhatsApp Profile (once)
+### ✅ 3. ⚙️ Setup WhatsApp Chrome Profile (Only Once)
 
-To avoid scanning the QR code every time:
+This prevents logging in again every time.
 
-1. Run:
 ```bash
 chrome.exe --user-data-dir="C:\ChromeProfiles\whatsapp_profile"
 ```
 
-2. Log into WhatsApp Web and close the window.
+1. This opens a new Chrome window
+2. Go to [https://web.whatsapp.com](https://web.whatsapp.com)
+3. Scan QR code once, close the window
 
 ---
 
-### 3. Run the Script
+### ✅ 4. 🧾 Prepare `salary_template.xlsx`
+
+* Sheet `data` with columns like `Contact_Name`, `Basic Salary`, etc.
+* Sheet `photo` styled like your salary slip, with named cell positions (e.g., `F10`, `K14`)
+
+---
+
+### ✅ 5. 🚀 Run the Script
+
+From the project folder:
 
 ```bash
 .venv\Scripts\activate
 python send_salary_slips.py
 ```
 
-> This will:
-> - Fill the Excel template
-> - Export PNGs to `exports/`
-> - Open WhatsApp Web and send each image to the contact listed
+This will:
+
+* Fill Excel
+* Export each slip to `exports/`
+* Open Chrome with WhatsApp
+* Paste each image via clipboard to the matching contact
 
 ---
 
-## 🧠 Tips
+### ✅ 6. 🔁 Re-run Later
 
-- Do **not** open Excel while the script runs
-- Do **not** interact with WhatsApp Web until the script finishes
-- Images are sent using `Ctrl+V` via clipboard for best reliability
+No need to scan WhatsApp QR again.
 
----
+Just:
 
-## 🛠 Troubleshooting
-
-- ❌ `DevToolsActivePort` error: You’re using a default Chrome profile — follow the WhatsApp Profile Setup above.
-- ❌ COM/Excel error: Excel must be visible (`excel.Visible = True`) and the template range must be properly selected.
-- ❌ Blank image sent: The script automatically skips images with no visible data.
-
----
-
-## 🔐 Security Notice
-
-This script automates WhatsApp for internal use only. Make sure it complies with your organization's data handling and messaging policies.
-
----
-
-## 📜 License
-
-MIT License
+```bash
+cd FinanceProject
+.venv\Scripts\activate
+python send_salary_slips.py
 ```
+
+---
+
+## 🧠 Optional Enhancements
+
+| Feature           | Description                         |
+| ----------------- | ----------------------------------- |
+| `--noconsole` exe | Hide black window (via PyInstaller) |
+| `.bat` launcher   | Auto-run with 2x click              |
+| `.csv` log        | Track sent/skipped contacts         |
+
+---
