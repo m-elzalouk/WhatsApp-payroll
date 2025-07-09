@@ -56,6 +56,7 @@ pip install pandas selenium pywin32 pillow openpyxl
 ### ✅ 3. ⚙️ Setup WhatsApp Chrome Profile (Only Once)
 
 This prevents logging in again every time.
+Run the following at RUN Window (Windows + R).
 
 ```bash
 chrome.exe --user-data-dir="C:\ChromeProfiles\whatsapp_profile"

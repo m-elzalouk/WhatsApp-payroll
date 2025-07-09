@@ -16,11 +16,14 @@ import io
 import numpy as np
 import pyautogui # type: ignore
 import keyboard # type: ignore
+import gc
+import psutil
+import re
 
 # === CONFIGURATION ===
 EXCEL_FILE = "salary_template.xlsx"
 EXPORT_DIR = "exports"
-SHEET_DATA = "data"
+SHEET_DATA = "MAIN"
 SHEET_TEMPLATE = "photo"
 RANGE_TO_EXPORT = "B2:L47"
 WHATSAPP_WAIT = 25
@@ -46,8 +49,16 @@ try:
     for index, row in df.iterrows():
         name = str(row["Contact_Name"]).strip()
         image_path = os.path.abspath(os.path.join(EXPORT_DIR, f"{name}.png"))
-        # Skip if contact name is empty or row if image was already generated successfully
-        if not name or row.get("Image_Status", "").lower() == "success":
+        salary_status = str(row.get("salary status", "")).strip()
+        # Skip if contact name is empty, image was already generated successfully, or image file exists
+        if (
+            not name
+            or name == 'nan'
+            or re.search(r'[\u0600-\u06FF]', salary_status)
+            or float(row.get("Net Salary", 0)) <= 0
+            or row.get("Image_Status", "").lower() == "success"
+            or (os.path.exists(image_path) and os.path.getsize(image_path) > 0)
+        ):
             continue
         print(f"📸 Processing {index}...")
         try:
@@ -68,7 +79,7 @@ try:
             photo.Range("G29").Value = safe_cell(row["Social Security"])   #الضمان
             photo.Range("G33").Value = safe_cell(row["Solidarity"])    #التضامن
             photo.Range("G31").Value = safe_cell(row["Jihad"])         #الجهاد
-            photo.Range("G35").Value = safe_cell(row["Internal advance"])   #السلفة الداخلية
+            photo.Range("G35").Value = safe_cell(row["Internal advance"]) + safe_cell(row["Other iIternal discounts"])   #السلفة الداخلية
             photo.Range("G37").Value = safe_cell(row["Inner box"])         #صندوق داخلي
             photo.Range("G39").Value = safe_cell(row["Loan Fund"])   #صندوق السلف
             photo.Range("G41").Value = safe_cell(row["Total Deduction"])   #الخصومات الإجمالية
@@ -89,7 +100,7 @@ try:
                     chart.Chart.Paste()
                     chart.Chart.Export(Filename=image_path)
                     chart.Delete()
-
+                    df.iloc[index, df.columns.get_loc("Image_Status")] = ""
                     df.at[index, "Image_Status"] = "Success"
                     break                
                 except Exception as e:
@@ -158,21 +169,32 @@ def copy_image_to_clipboard(image_path):
 failed_contacts = []  # To collect any failures
 
 for index, row in df.iterrows():
-    name = str(row["Contact_Name"]).strip()
-    image_path = os.path.abspath(os.path.join(EXPORT_DIR, f"{name}.png"))
-    df["Send_Status"] = df.get("Send_Status", pd.Series([""] * len(df)))
 
-# Fill only cells that are NaN, empty string, or not exactly 'Sent'
-    df["Send_Status"] = df["Send_Status"].apply(lambda x: x if str(x).strip().lower() == "sent" else "")
-
-        
-        # Check if 'q' is pressed to quit
+            # Check if 'q' is pressed to quit
     if keyboard.is_pressed('q'):
         print("\n⛔️ Interrupted by user. Saving progress and exiting...")
         break
 
+    name = str(row["Contact_Name"]).strip().replace("+", "")
+    image_path = os.path.abspath(os.path.join(EXPORT_DIR, f"{name}.png"))
+    salary_status = str(row.get("salary status", "")).strip()
+    # df["Send_Status"] = df.get("Send_Status", pd.Series([""] * len(df)))
+
+# Fill only cells that are NaN, empty string, or not exactly 'Sent'
+    # df["Send_Status"] = df["Send_Status"].apply(lambda x: x if str(x).strip().lower() == "sent" else "")
+
     # Skip if contact name is empty or already sent successfully
-    if not name or name == '0' or row.get("Send_Status", "").lower().startswith("sent"):
+    # if not name or name == '0' or row.get("Send_Status", "").lower().startswith("sent"):
+    #     continue
+
+    if (
+        not name
+        or name == '0'
+        or name == 'nan'
+        or re.search(r'[\u0600-\u06FF]', salary_status)
+        or float(row.get("Net Salary", 0)) <= 0
+        or row.get("Send_Status", "").lower().startswith("sent")
+    ):
         continue
 
     if not os.path.exists(image_path):
@@ -210,66 +232,37 @@ for index, row in df.iterrows():
         search_box = wait.until(EC.presence_of_element_located((By.XPATH, '//div[@contenteditable="true"][@data-tab="3"]')))
         search_box.clear()
         search_box.send_keys(name)  # name is the phone number
+        time.sleep(1)
         search_box.send_keys(Keys.ENTER)
+        time.sleep(1)
+        wait = WebDriverWait(driver, 2)
 
+        # Add this check to ensure the chat actually opened
         try:
-            # Wait for search result containing last 9 digits of the number
-            result = wait.until(EC.element_to_be_clickable((
-                By.XPATH,
-                f'//div[@role="option" or @role="button"][.//span[contains(text(), "{name[-9:]}")]]'
-            )))
-            driver.execute_script("arguments[0].click();", result)
-            time.sleep(2)
-        
-            # Wait for the message box to become available
-            message_box = wait.until(EC.presence_of_element_located((
-                By.XPATH, '//div[@contenteditable="true"][@data-tab="10"]'
-            )))
-        
-            # Paste image
-            copy_image_to_clipboard(image_path)
-            time.sleep(1)
-        
-            ActionChains(driver).move_to_element(message_box).click().perform()
-            time.sleep(1)
-            message_box.send_keys(Keys.CONTROL, 'v')
-            time.sleep(2)
-        
-            # Press enter to send
-            pyautogui.press('enter')
-            df.at[index, "Send_Status"] = "Sent"
-            print(f"✅ Sent to {name}")
-        
+            # Wait for the message box to become available (max 10 seconds)
+            message_box = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//div[@contenteditable="true"][@data-tab="10"]'))
+            )
         except Exception as e:
-            print(f"❌ Could not send to {name}: {e}")
-            pyautogui.press('esc')
-            df.at[index, "Send_Status"] = f"Failed: {e}"
+            print(f"❌ Could not open chat for {name} (numeric name issue?): {e}")
+            df.at[index, "Send_Status"] = "Failed: Chat not opened"
             failed_contacts.append(name)
             continue
-        
 
-        try:
-            pyautogui.press('enter')
-            df.iloc[index, df.columns.get_loc("Send_Status")] = "Sent (Enter Key Fallback)"
-            df.at[index, "Send_Status"] = "Sent"
-            time.sleep(2)
-        except:
-            try:
-                send_btn = driver.find_element(By.XPATH, '//div[@role="button"][@aria-label="Send"]')
-                driver.execute_script("arguments[0].click();", send_btn)
-                df.iloc[index, df.columns.get_loc("Send_Status")] = "Sent (Retry Click)"
-                time.sleep(2)
-            except:
-                try:
-                    send_btn = wait.until(EC.element_to_be_clickable((By.XPATH, '//div[@role="button"][@aria-label="Send"]')))
-                    driver.execute_script("arguments[0].click();", send_btn)
-                    df.iloc[index, df.columns.get_loc("Send_Status")] = "Sent"
-                    time.sleep(2)
-                except:
-                    df.at[index, "Send_Status"] = "Failed: All methods failed"
+        # Paste image
+        copy_image_to_clipboard(image_path)
+        time.sleep(1)
+        ActionChains(driver).move_to_element(message_box).click().perform()
+        time.sleep(1)
+        message_box.send_keys(Keys.CONTROL, 'v')
         time.sleep(2)
-        pyautogui.press('esc')
+        
+        # Press enter to send
+        pyautogui.press('enter')
+        df.at[index, "Send_Status"] = "Sent"
+        time.sleep(2)
         print(f"✅ Sent to {name}")
+        pyautogui.press('esc')
 
     except Exception as e:
         print(f"❌ Failed to send to {name}: {e}")
@@ -285,24 +278,32 @@ else:
     print("\n✅ All messages sent successfully.")
 
 # === Save results to Excel ===
-# Save the updated DataFrame back to the Excel file
 
-# with pd.ExcelWriter(EXCEL_FILE, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
-#     df.to_excel(writer, sheet_name=SHEET_DATA, index=False)
-
-# === Save results to Excel ===
-wb.Close(False)
-excel.Quit()
+# First, close the Excel COM objects to release the file
 try:
-    with pd.ExcelWriter(EXCEL_FILE, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
-        df.to_excel(writer, sheet_name=SHEET_DATA, index=False) 
+    wait = WebDriverWait(driver, 10)
+    wb.Close(False)
+    excel.Quit()
+    del wb
+    del excel
+    gc.collect()
+    time.sleep(2)  # Give the OS a moment to release the file lock
+except Exception as e:
+    print(f"⚠️ Error closing Excel COM objects: {e}")
 
-    print("✅ All messages sent and results saved to Excel.")   
-
+# Save to a new file to avoid file lock issues
+try:
+    updated_file = "salary_template_UPDATED.xlsx"
+    with pd.ExcelWriter(
+        updated_file,
+        engine='openpyxl',
+        mode='w'
+    ) as writer:
+        df.to_excel(writer, sheet_name=SHEET_DATA, index=False)
+    print(f"✅ All messages sent and results saved to {updated_file}.")   
 except Exception as e:
     print(f"❌ Failed to save Excel file: {e}")
 
-time.sleep(7)
-excel.Quit()
+time.sleep(3)
 driver.quit()
 print("✅ All slips sent.")
