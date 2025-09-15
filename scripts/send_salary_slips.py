@@ -24,9 +24,9 @@ import re
 # === CONFIGURATION ===
 EXCEL_FILE = "data\\raw\\salary_template.xlsx"
 EXPORT_DIR = "./exports"
-SHEET_DATA = "data"
+SHEET_DATA = "MAIN"
 SHEET_TEMPLATE = "photo"
-RANGE_TO_EXPORT = "B2:L47"
+RANGE_TO_EXPORT = "B2:L45"
 WHATSAPP_WAIT = 25
 
 # === Helpers for image paths
@@ -70,6 +70,8 @@ except Exception as e:
     print(f"Warning: Failed to initialize Excel COM: {e}")
     raise
 
+time.sleep(3.5)
+
 try:
     wb = excel.Workbooks.Open(os.path.abspath(EXCEL_FILE))
     photo = wb.Sheets(SHEET_TEMPLATE)
@@ -82,6 +84,7 @@ try:
         if (
             not name
             or name == 'nan'
+            or name == '0'
             or re.search(r'[\u0600-\u06FF]', salary_status)
             or float(row.get("Net Salary", 0)) <= 0
             or row.get("Image_Status", "").lower() == "success"
@@ -90,12 +93,13 @@ try:
             continue
         print(f"📸 Processing {index}...")
         try:
-
+            time.sleep(0.5)
             def safe_cell(value):
                 return "" if pd.isna(value) or value == 65535 else value
             # Fill values
             photo.Range("F10").Value = safe_cell(row["Military ID"])   #الرقم العسكري
             photo.Range("F12").Value = safe_cell(row["Rank"])          #الرتبة
+            photo.Range("F14").Value = safe_cell(row["Military Name"]) #اسم العسكري
             photo.Range("J12").Value = safe_cell(row["Number of Increments"])  #عدد العلاوات
             photo.Range("I12").Value = safe_cell(row["Degree"])       #الدرجة
             photo.Range("F16").Value = safe_cell(row["Basic Salary"])  #الراتب الأساسي
@@ -105,43 +109,85 @@ try:
             photo.Range("F24").Value = safe_cell(row["Car Allowance"])   #بدل سيارة
             photo.Range("F26").Value = safe_cell(row["Total Salary"])  #الراتب الإجمالي
             photo.Range("G29").Value = safe_cell(row["Social Security"])   #الضمان
-            photo.Range("G33").Value = safe_cell(row["Solidarity"])    #التضامن
-            photo.Range("G31").Value = safe_cell(row["Jihad"])         #الجهاد
-            photo.Range("G35").Value = safe_cell(row["Internal advance"]) + safe_cell(row["Other iIternal discounts"])   #السلفة الداخلية
-            photo.Range("G37").Value = safe_cell(row["Inner box"])         #صندوق داخلي
-            photo.Range("G39").Value = safe_cell(row["Loan Fund"])   #صندوق السلف
-            photo.Range("G41").Value = safe_cell(row["Total Deduction"])   #الخصومات الإجمالية
-            photo.Range("G43").Value = safe_cell(row["Net Salary"])    #الراتب الصافي
-            photo.Range("F14").Value = safe_cell(row["Military Name"]) #اسم العسكري
+            photo.Range("G31").Value = safe_cell(row["Solidarity"])    #التضامن
+            # photo.Range("G31").Value = safe_cell(row["Jihad"])         #الجهاد
+            photo.Range("G33").Value = safe_cell(row["Internal advance"]) + safe_cell(row["Other iIternal discounts"])   #السلفة الداخلية
+            photo.Range("G35").Value = safe_cell(row["Inner box"])         #صندوق داخلي
+            photo.Range("G37").Value = safe_cell(row["Loan Fund"])   #صندوق السلف
+            photo.Range("G39").Value = safe_cell(row["Total Deduction"])   #الخصومات الإجمالية
+            photo.Range("G41").Value = safe_cell(row["Net Salary"])    #الراتب الصافي
 
-            # Export image
+            # Export image (robustly) by copying range as bitmap and exporting the pasted picture
             wb.Activate()
             photo.Activate()
             photo.Range(RANGE_TO_EXPORT).Select()
-            time.sleep(0.5)
-            
-            for attempt in range(2):
+            time.sleep(0.7)
+
+            for attempt in range(3):
                 try:
-                    # Use xlBitmap (2) to avoid COM constants resolution issues
+                    # Make sure Excel is ready to render
+                    try:
+                        excel.ScreenUpdating = True
+                        excel.EnableEvents = True
+                    except Exception:
+                        pass
+
+                    # Copy range as bitmap (2 = xlBitmap)
                     photo.Range(RANGE_TO_EXPORT).CopyPicture(Format=2)
-                    chart = photo.ChartObjects().Add(Left=0, Top=0, Width=600, Height=800)
-                    chart.Activate()
-                    chart.Chart.Paste()
-                    # Ensure export dir exists and export
-                    os.makedirs(os.path.dirname(image_path), exist_ok=True)
-                    chart.Chart.Export(Filename=image_path)
-                    chart.Delete()
-                    # Verify the file was created and is non-empty
-                    if os.path.exists(image_path) and os.path.getsize(image_path) > 0:
-                        df.iloc[index, df.columns.get_loc("Image_Status")] = ""
-                        df.at[index, "Image_Status"] = "Success"
-                        break
-                    else:
+                    time.sleep(0.3)
+
+                    picture_shape = None
+                    # Primary approach: paste as a Picture on the sheet and export the shape
+                    try:
+                        picture_shape = photo.Pictures().Paste()
+                        time.sleep(0.3)
+                        # Ensure export dir exists
+                        os.makedirs(os.path.dirname(image_path), exist_ok=True)
+                        # Export shape directly (more reliable than chart export)
+                        picture_shape.Export(Filename=image_path)
+                    except Exception:
+                        # Fallback: use a ChartObject as a staging area
+                        chart = photo.ChartObjects().Add(Left=0, Top=0, Width=600, Height=800)
+                        time.sleep(0.3)
+                        chart.Activate()
+                        chart.Chart.Paste()
+                        os.makedirs(os.path.dirname(image_path), exist_ok=True)
+                        chart.Chart.Export(Filename=image_path)
+                        chart.Delete()
+
+                    # Clean up pasted picture if created
+                    try:
+                        if picture_shape is not None:
+                            picture_shape.Delete()
+                    except Exception:
+                        pass
+
+                    # Verify the file was created, non-empty, and not blank
+                    if not (os.path.exists(image_path) and os.path.getsize(image_path) > 0):
                         raise Exception("Exported image missing or empty")
+
+                    # Light-weight blank check: very low stddev means white/blank
+                    try:
+                        from PIL import Image as _Img
+                        import numpy as _np
+                        _std = _np.array(_Img.open(image_path).convert("L")).std()
+                        if _std < 2.0:
+                            raise Exception(f"Exported image appears blank (std={_std:.2f})")
+                    except Exception as verify_err:
+                        # Re-raise to trigger retry logic
+                        raise verify_err
+
+                    # Success
+                    df.iloc[index, df.columns.get_loc("Image_Status")] = ""
+                    df.at[index, "Image_Status"] = "Success"
+                    break
                 except Exception as e:
                     print(f"?? Attempt {attempt + 1} failed to export image for {name}: {e}")
-                    if attempt == 1:
+                    # Small backoff before retry
+                    time.sleep(0.7)
+                    if attempt == 2:
                         df.at[index, "Image_Status"] = f"Failed: {e}"
+            time.sleep(0.5)
         except Exception as e:
             print(f"❌ Error processing {name}: {e}")
             df.at[index, "Image_Status"] = f"Failed: {e}"
@@ -185,7 +231,7 @@ def is_image_blank(image_path, threshold=3):
     try:
         img = Image.open(image_path).convert("L")
         return np.array(img).std() < threshold
-    except:
+    except Exception as e:
         print(f"⚠️ Error checking if image is blank: {e}")
         return True
 
@@ -291,26 +337,26 @@ for index, row in df.iterrows():
         for attempt in range(2):
             try:
                 # Try paperclip upload first
-                try:
-                    attach_btn = WebDriverWait(driver, 5).until(
-                        EC.element_to_be_clickable((By.CSS_SELECTOR, "span[data-icon='clip']"))
-                    )
-                    attach_btn.click()
-                except Exception:
-                    pass
+                # try:
+                #     attach_btn = WebDriverWait(driver, 5).until(
+                #         EC.element_to_be_clickable((By.CSS_SELECTOR, "span[data-icon='clip']"))
+                #     )
+                #     attach_btn.click()
+                # except Exception:
+                #     pass
 
-                file_inputs = driver.find_elements(By.CSS_SELECTOR, "input[type='file']")
-                if file_inputs:
-                    try:
-                        file_inputs[0].send_keys(image_path)
-                        send_btn = WebDriverWait(driver, 8).until(
-                            EC.element_to_be_clickable((By.CSS_SELECTOR, "span[data-icon='send']"))
-                        )
-                        driver.execute_script("arguments[0].click();", send_btn)
-                        sent_ok = True
-                        break
-                    except Exception:
-                        pass
+                # file_inputs = driver.find_elements(By.CSS_SELECTOR, "input[type='file']")
+                # if file_inputs:
+                #     try:
+                #         file_inputs[0].send_keys(image_path)
+                #         send_btn = WebDriverWait(driver, 8).until(
+                #             EC.element_to_be_clickable((By.CSS_SELECTOR, "span[data-icon='send']"))
+                #         )
+                #         driver.execute_script("arguments[0].click();", send_btn)
+                #         sent_ok = True
+                #         break
+                #     except Exception:
+                #         pass
 
                 # Clipboard fallback
                 copy_image_to_clipboard(image_path)
@@ -325,7 +371,7 @@ for index, row in df.iterrows():
                 # Prefer clicking the send button in the media preview
                 try:
                     send_btn = WebDriverWait(driver, 8).until(
-                        EC.element_to_be_clickable((By.XPATH, "//span[@data-icon='send']"))
+                        EC.element_to_be_clickable((By.XPATH, "//span[@data-icon='wds-ic-send-filled']"))
                     )
                     driver.execute_script("arguments[0].click();", send_btn)
                     time.sleep(1.5)
