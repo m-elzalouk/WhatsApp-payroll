@@ -81,7 +81,7 @@ From the project folder:
 
 ```bash
 .venv\Scripts\activate
-python send_salary_slips.py
+python scripts\send_salary_slips.py
 ```
 
 This will:
