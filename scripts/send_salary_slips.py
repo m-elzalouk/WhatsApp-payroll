@@ -26,7 +26,7 @@ EXCEL_FILE = "data\\raw\\salary_template.xlsx"
 EXPORT_DIR = "./exports"
 SHEET_DATA = "data"#MAIN
 SHEET_TEMPLATE = "photo"
-RANGE_TO_EXPORT = "B2:L47"
+RANGE_TO_EXPORT = "B2:L45"
 WHATSAPP_WAIT = 25
 
 # === Helpers for image paths
